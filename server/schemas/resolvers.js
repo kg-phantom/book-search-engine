@@ -4,67 +4,77 @@ const { User } = require('../models');
 
 const resolvers = {
     Query: {
-        getSingleUser: async ({ user = null, params }, res) => {
-            const foundUser = await User.findOne({
-                $or: [{ _id: user ? user._id : params.id }, { username: params.username }]
-            });
+        me: async (parent, args, context) => {
+            if(context.user) {
+                const userData = await User.findOne({ _id: context.user._id })
+                    .select('-__v -password')
+                    .populate('savedBooks');
 
-            if (!foundUser) {
-                return res.status(400).json({ message: 'Cannot find a user with this id!' });
-              }
+                return userData;
+            }
+            // const foundUser = await User.findOne({
+            //     $or: [{ _id: user ? user._id : params.id }, { username: params.username }]
+            // });
+
+            // if (!foundUser) {
+            //     return res.status(400).json({ message: 'Cannot find a user with this id!' });
+            //   }
           
-              res.json(foundUser);
+            //   res.json(foundUser);
+
+            throw new AuthenticationError('Not logged in');
         }
     },
 
     Mutation: {
-        createUser: async ({ body }, res) => {
-            const user = await User.create(body);
+        addUser: async (parent, args) => {
+            const user = await User.create(args);
 
             if (!user) {
                 return res.status(400).json({ message: 'Something is wrong!' });
             }
             const token = signToken(user);
-            res.json({ token, user });
+            return { token, user };
         },
-        login: async ({ body }, res) => {
-            const user = await User.findOne({ $or: [{ username: body.username }, { email: body.email }] });
+        login: async (parent, { email, password }) => {
+            const user = await User.findOne({ email });
             if (!user) {
                 throw new AuthenticationError('Incorrect credentials');
             }
 
-            const correctPw = await user.isCorrectPassword(body.password);
+            const correctPw = await user.isCorrectPassword(password);
 
             if (!correctPw) {
                 throw new AuthenticationError('Incorrect credentials');
             }
             const token = signToken(user);
-            res.json({ token, user });
+            return { token, user };
         },
-        saveBook: async ({ user, body }, res) => {
-            console.log(user);
+        saveBook: async (parent, { details }, context) => {
             try {
                 const updatedUser = await User.findOneAndUpdate(
-                    { _id: user._id },
-                    { $addToSet: { savedBooks: body } },
+                    { _id: context.user._id },
+                    { $addToSet: { savedBooks: details } },
                     { new: true, runValidators: true }
                 );
-                return res.json(updatedUser);
+                return updatedUser;
             } catch (err) {
                 console.log(err);
-                return res.status(400).json(err);
+                throw new AuthenticationError('You need to be logged in!');
             }
         },
-        deleteBook: async ({ user, params }, res) => {
-            const updatedUser = await User.findOneAndUpdate(
-                { _id: user._id },
-                { $pull: { savedBooks: { bookId: params.bookId } } },
+        removeBook: async (parent, { bookId }, context) => {
+            if(context.user) {
+                const updatedUser = await User.findOneAndUpdate(
+                { _id: context.user._id },
+                { $pull: { savedBooks: { bookId: bookId } } },
                 { new: true }
               );
-              if (!updatedUser) {
-                return res.status(404).json({ message: "Couldn't find user with this id!" });
-              }
-              return res.json(updatedUser);
+
+              return updatedUser;
+            } else {
+                throw new AuthenticationError('You need to be logged in!');
+            }
         }
     }
 };
