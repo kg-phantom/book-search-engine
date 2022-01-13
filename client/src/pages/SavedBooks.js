@@ -8,8 +8,6 @@ import Auth from '../utils/auth';
 import { removeBookId } from '../utils/localStorage';
 
 const SavedBooks = () => {
-  // const [userData, setUserData] = useState({});
-
   const { loading, data } = useQuery(GET_ME);
 
   const userData = data?.me || {};
@@ -29,7 +27,6 @@ const SavedBooks = () => {
         variables: { bookId: bookId }
       });
 
-      // setUserData(updatedUser);
       // upon success, remove book's id from localStorage
       removeBookId(bookId);
     } catch (err) {
