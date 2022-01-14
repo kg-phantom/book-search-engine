@@ -4,6 +4,7 @@
 ![ExpressJS](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)
 ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Apollo-GraphQL](https://img.shields.io/badge/-ApolloGraphQL-311C87?style=for-the-badge&logo=apollo-graphql)
+![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
 ![Heroku](https://img.shields.io/badge/heroku-%23430098.svg?style=for-the-badge&logo=heroku&logoColor=white)
 
 
@@ -20,6 +21,7 @@ A book search engine that allows users to find new books to read and save them t
 * [Installation](#installation)
 * [Usage](#usage)
 * [Apollo Server](#apollo-server)
+* [JWT Tokens](#jwt-tokens)
 * [License](#license)
 * [Questions](#questions)
 
@@ -33,6 +35,7 @@ To install the app on your machine for development:
 2. Clone this repository onto your computer.
 3. Navigate to the root of this repository on the command line.
 4. Run `npm install` on the command line.
+5. Run `npm run develop` to start the server and react app.
 
 ## Usage
 1. Go to the deployed application at [https://my-google-books-library101.herokuapp.com/](https://my-google-books-library101.herokuapp.com/).
@@ -65,6 +68,79 @@ query {
 }
 ```
 
+### Mutations
+Multiple mutations are used in order to update the database.
+
+- `LOGIN_USER`:
+```js
+mutation login($email: String!, $password: String!) {
+        login(email: $email, password: $password) {
+            token
+            user {
+                _id
+                username
+                email
+            }
+        }
+    }
+```
+
+- `ADD_USER`:
+```js
+mutation addUser($username: String!, $email: String!, $password: String!) {
+        addUser(username: $username, email: $email, password: $password) {
+            token
+            user {
+                _id
+                username
+                email
+            }
+        }
+    }
+```
+
+- `SAVE_BOOK`:
+```js
+mutation saveBook($details: BookDetails!) {
+        saveBook(details: $details) {
+            _id
+            username
+            email
+            bookCount
+            savedBooks {
+                bookId
+                title
+                description
+                authors
+                link
+            }
+        }
+    }
+```
+
+- `REMOVE_BOOK`:
+```js
+mutation removeBook($bookId: String!) {
+        removeBook(bookId: $bookId) {
+            _id
+            username
+            bookCount
+            savedBooks {
+                bookId
+                title
+                authors
+            }
+        }
+    }
+```
+
+### Resolvers
+The resolvers in `resolvers.js` interact with the database in order for the mutations to take effect. Each resolver excluding `addUser` and `login` takes in `context` as a parameter to decode the JWT token to ensure authorization before performing the mutation.
+
+## JWT Tokens
+This application uses JWT Tokens to create/login users as well as verify that actions like saving books are authorized. Tokens are signed after a new user is created or en existing user logs in. 
+
+The token is saved to `localStorage`, so it can be found and decoded when authorization is required.
 
 ## License
 Licensed under the [MIT](https://choosealicense.com/licenses/mit/) license.
